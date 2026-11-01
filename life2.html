@@ -1,0 +1,243 @@
+<html><head>
+<meta http-equiv="content-type" content="text/html; charset=windows-1250"></head><body>
+<canvas id="canvas" height="720" width="720">
+<script>
+
+
+
+var xSize = 2;	//x os velicina jednog kvadrata u pikselima
+var ySize = 2;	//y
+var aSize = 512;	//velicina citavog grida, aSize*aSize
+
+
+//var prob1 = 0.8;	//vjerojatnost da ce u pocetnom stanju kockica biti 1
+var running = 1; //da li pocinje pri pokretanju
+var intervalId;
+var msActivate = 1; //izracunaj svakih msActivate milisekundi
+var dcs = 0.2; //vjerojatnost spontane emisije
+
+var canvas = document.getElementById("canvas");
+var context = canvas.getContext("2d");
+
+var startSum = 0;
+
+canvas.height = aSize*ySize;
+canvas.width = aSize*xSize;
+canvas.addEventListener("mousedown",setCell, false);
+
+var aut = [];
+aut[0]=[];
+aut[1]=[];
+aut[2]=[];
+
+var autCache = [];
+autCache[0]=[];
+autCache[1]=[];
+autCache[2]=[];
+
+var autInitialized = false;
+
+function initAut()
+{
+	autInitialized = true;
+
+	for (var i = 0; i < aSize; i++)
+	{
+		aut [0][i] = [];
+		aut [1][i] = [];
+		aut [2][i] = [];
+
+		autCache [0][i] = [];
+		autCache [1][i] = [];
+		autCache [2][i] = [];
+
+		for(var j = 0; j < aSize; j++)
+		{
+		//		aut[0][i][j] = 0;
+				aut[0][i][j] = (i > aSize*4/9 && j > aSize*4/9 && i < aSize*5/9 && j < aSize*5/9 ) ? 20 : 0;
+				aut[1][i][j] = 0;
+				aut[2][i][j] = 0;
+
+				autCache[0][i][j] = -1;
+				autCache[1][i][j] = -1;
+				autCache[2][i][j] = -1;
+		}
+	}
+
+	//aut[0][aSize/2][aSize/2] = 1000;
+}
+
+var imageData = context.getImageData(0,0,aSize*xSize, aSize*ySize);
+var f = 0;
+
+var sumOfAll = 0;
+var sumOfFrak = 0;
+
+var brojkoraka = 0;
+
+function calcAndRender (){
+	sumOfFrak = 0;
+	sumOfAll = 0;
+	var emisija = 0;
+	for (var j = 0; j < aSize; j++){
+		for (var z=0; z < aSize; z++){
+			if (aut[0][j][z] != autCache[0][j][z]) 
+			{
+    			render (j, aut[0][j][z], z);
+    			autCache[0][j][z] = aut[0][j][z]; //Spremi podatke o pixelu u autCache
+			}
+
+			sumOfAll += aut [0][j][z];
+			sumOfFrak+= aut [1][j][z];
+			if(aut[1][j][z] > 1) alert("j="+j+"z="+z+"aut[1][j][z]"+aut[1][j][z]);
+
+			if(aut[1][j][z] > Math.random()) aut[0][j][z]++;	//	Apsorpcija
+			
+			emisija = aut[1][j][z]/16;
+			if( aut[0][j][z] >= 1 && dcs > Math.random() ){		//	Spontana emisija
+				aut[0][j][z] = aut[0][j][z] - 1;
+				emisija += 1/16;
+			}
+
+			aut[2][j][z]=0;	// Širenje vala
+			if (emisija > 0){
+				aut[2][j-1<0?aSize-1:j-1][z-1<0?aSize-1:z-1]=aut[1][j-1<0?aSize-1:j-1][z-1<0?aSize-1:z-1]+emisija;
+				aut[2][j-1<0?aSize-1:j-1][z]				=aut[1][j-1<0?aSize-1:j-1][z]+emisija;
+				aut[2][j-1<0?aSize-1:j-1][z+1>=aSize?0:z+1]	=aut[1][j-1<0?aSize-1:j-1][z+1>=aSize?0:z+1]+emisija;
+				aut[2][j][z-1<0?aSize-1:z-1]				=aut[1][j][z-1<0?aSize-1:z-1]+emisija;
+				aut[2][j][z+1>=aSize?0:z+1]					=aut[1][j][z+1>=aSize?0:z+1]+emisija;
+				aut[2][j+1>=aSize?0:j+1][z-1<0?aSize-1:z-1]	=aut[1][j+1>=aSize?0:j+1][z-1<0?aSize-1:z-1]+emisija;
+				aut[2][j+1>=aSize?0:j+1][z]					=aut[1][j+1>=aSize?0:j+1][z]+emisija;
+				aut[2][j+1>=aSize?0:j+1][z+1>=aSize?0:z+1]	=aut[1][j+1>=aSize?0:j+1][z+1>=aSize?0:z+1]+emisija;
+			}
+		}
+	}
+	if(sumOfAll==0) {
+		toggleExecution();
+		alert("Thermal death");
+	}
+
+	if (startSum == 0)	startSum = sumOfAll;
+
+	aut[1]=aut[2];
+	
+	updateSum(sumOfAll);
+//	updateFrak(100*sumOfFrak/sumOfAll);
+	updateFrak(sumOfFrak+sumOfAll);
+	brojkoraka++;
+	updateCount(brojkoraka);
+	context.putImageData(imageData,0,0);
+}
+
+var val = 0;
+var red = 0, green = 0, blue = 0;
+function render (j, br, i){
+	red = 0;
+	green = 0;
+	blue = 0;
+	if(br==1){
+		red = 255;
+		blue = 0;
+		green = 0;
+	} else if (br==2){
+		red = 255;
+		green = 75;
+		blue = 0;
+	} else if (br==3){
+		red = 255;
+		green = 125;
+		blue = 0;
+	} else if (br==4){
+		red = 255;
+		green = 175;
+		blue = 0;
+	} else if (br==5){
+		red = 255;
+		green = 255;
+		blue = 0;
+	} else if (br==6){
+		red = 255;
+		green = 255;
+		blue = 75;
+	} else if (br==7){
+		red = 255;
+		green = 255;
+		blue = 125;
+	} else if (br==8){
+		red = 255;
+		green = 255;
+		blue = 175;
+	} else if (br>8){
+		red = 255;
+		green = 255;
+		blue = 255;
+	}
+	for (var p = 0; p < ySize;p++){
+		for (var g = 0; g < xSize;g++){
+			val = j*4*aSize*ySize*ySize+i*4*xSize+g*4+p*aSize*ySize*4;
+			imageData.data [val] = red;
+			imageData.data [val+1] = green;
+			imageData.data [val+2] = blue;
+			imageData.data [val+3] = 255;
+		}
+	}
+}
+function updateSum (suma){
+	document.getElementById("suma").innerHTML = suma;
+	document.getElementById("startSum").innerHTML = startSum;
+	document.getElementById("sumDiff").innerHTML = suma - startSum;
+}
+
+function getSum (){
+	return parseInt(document.getElementById("suma").innerHTML);
+}
+
+function updateFrak (frak){
+	document.getElementById("frak").innerHTML = frak;
+}
+
+function updateCount (nrk){
+//	document.getElementById("counter").innerHTML = parseInt(document.getElementById("counter").innerHTML)+1;
+	document.getElementById("counter").innerHTML = nrk;
+}
+
+if (running == 1){
+	if (autInitialized == false)	initAut();
+	intervalId = setInterval (calcAndRender, msActivate);
+}
+
+function toggleExecution ()	{//pauzira ili pokrece izracunavanje
+	if (running == 1)	{
+		running = 0;
+		clearInterval(intervalId);
+	} else {
+		running = 1;
+		intervalId = setInterval(calcAndRender, msActivate);
+	}
+}
+
+function setCell (event){	//dodaje 1 selektiranoj celiji
+	var y = event.x-10;
+	var x = event.y-10;
+	aut[0][Math.round(x/xSize)][Math.round(y/ySize)] += 1;
+	render (Math.round(x/xSize), aut[0][Math.round(x/xSize)][Math.round(y/ySize)], Math.round(y/ySize));
+	context.putImageData(imageData,0,0);
+	updateSum(getSum()+1);
+}
+
+function restartSim()
+{
+	initAut();
+	brojkoraka = 0;
+}
+
+</script></canvas>
+<button type="button" onclick="restartSim();">Restart</button>
+<button type="button" onclick="toggleExecution();">Start/Stop</button>
+<br>Level sum:<div id="suma"></div>
+Prob. sum:<div id="frak"></div>
+Start. sum:<div id="startSum"></div>
+Sum. difference:<div id="sumDiff"></div>
+Evaluation nr:<div id="counter"></div>
+
+</body></html>
