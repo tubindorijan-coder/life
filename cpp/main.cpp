@@ -1,7 +1,6 @@
 #include <SFML/Graphics.hpp>
 #include <vector>
 #include <iostream>
-#include <bits/stdc++.h>
 
 const int aSize = 640; //veličina grida aSize*aSize
 const int scale = 2; //
@@ -55,7 +54,7 @@ void initAut()
 	{
 		for(int j = 0; j < aSize; j++)
 		{
-				aut[0][i][j] = (i > aSize*4/9 && j > aSize*4/9 && i < aSize*5/9 && j < aSize*5/9 ) ? 20 : 0;
+				aut[0][i][j] = (i > aSize*4/9 && j > aSize*4/9 && i < aSize*5/9 && j < aSize*5/9 ) ? 30 : 0;
 				aut[1][i][j] = 0;
 				aut[2][i][j] = 0;
 
@@ -82,7 +81,7 @@ void calcAndRender ()
 
             sumOfAll += aut[0][i][j];
             sumOfFrak += aut[1][i][j];
-            if(aut[1][i][j] > 1)    std::cout << "i= " << i << "j= " << j << "aut[1][i][j] " << aut[0][i][j] << std::endl;
+            //if(aut[1][i][j] > 1)    std::cout << "i= " << i << "j= " << j << "aut[1][i][j] " << aut[0][i][j] << std::endl;
 
             if(aut[1][i][j] > ((double)rand()) / RAND_MAX)   aut[0][i][j]++;     //Apsorpcija
 
@@ -105,7 +104,7 @@ void calcAndRender ()
 			}
         }
     }
-    if(sumOfAll==0) std::cout << "Thermal death";
+    //if(sumOfAll==0) std::cout << "Thermal death";
     if(startSum == 0)   startSum = sumOfAll;
 
     brojkoraka++;
